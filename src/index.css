@@ -7,6 +7,34 @@
   --font-serif: "Playfair Display", serif;
 }
 
+@media print {
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+  /* Show only the print-area and its children */
+  .print-area, .print-area * {
+    visibility: visible;
+  }
+  /* Position print-area at the top left of the page */
+  .print-area {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 20px;
+    background: white;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  /* Explicitly hide non-printable elements */
+  .no-print {
+    display: none !important;
+  }
+}
+
 @layer base {
   body {
     @apply antialiased;

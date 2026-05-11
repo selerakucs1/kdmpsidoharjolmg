@@ -331,7 +331,7 @@ export default function POS() {
         {printData && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 print:p-0 print:static">
             <div className="absolute inset-0 bg-white z-40 print:hidden" />
-            <div className="bg-white max-w-sm w-full p-8 relative z-50 print:p-0 print:shadow-none border border-dashed border-[#141414]/20">
+            <div className="print-area bg-white max-w-sm w-full p-8 relative z-50 print:p-0 print:shadow-none border border-dashed border-[#141414]/20">
               <button 
                 onClick={() => setPrintData(null)}
                 className="absolute top-4 right-4 p-2 hover:bg-stone-100 rounded-full print:hidden"
