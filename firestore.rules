@@ -66,6 +66,14 @@ service cloud.firestore {
              data.totalAmount is number && data.totalAmount >= 0;
     }
 
+    function isValidRepayment(data) {
+      return data.keys().hasAll(['loanId', 'amount', 'date', 'memberId', 'type']) &&
+             isValidId(data.loanId) &&
+             isValidId(data.memberId) &&
+             data.amount is number && data.amount > 0 &&
+             data.type in ['cash', 'goods'];
+    }
+
     // -------------------------------------------------------------------------
     // COLLECTION RULES
     // -------------------------------------------------------------------------
@@ -122,6 +130,13 @@ service cloud.firestore {
     match /transactions/{transactionId} {
       allow read: if isSignedIn();
       allow create: if isStaff() && isValidTransaction(incoming());
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    match /repayments/{repaymentId} {
+      allow read: if isSignedIn();
+      allow create: if isStaff() && isValidRepayment(incoming());
       allow update: if false;
       allow delete: if isAdmin();
     }
