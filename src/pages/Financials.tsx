@@ -613,9 +613,9 @@ export default function Financials() {
               </button>
               
               <div className="text-center space-y-2 mb-8 border-b-2 border-[#141414] pb-6">
-                <h2 className="text-xl font-serif italic font-bold">KOPERASI MAJU JAYA</h2>
-                <p className="text-[10px] font-mono opacity-60 uppercase">Jl. Raya No. 123, Sidoarjo</p>
-                <p className="text-[10px] font-mono opacity-60">Telp: 0812-3456-7890</p>
+                <h2 className="text-xl font-serif italic font-bold">KOPERASI MERAH PUTIH</h2>
+                <p className="text-[10px] font-mono opacity-60 uppercase">Jl. Soekarno-Hatta No 1, Lamongan</p>
+                <p className="text-[10px] font-mono opacity-60">Telp: 0857-3225-2888</p>
               </div>
 
               <div className="mb-8">
