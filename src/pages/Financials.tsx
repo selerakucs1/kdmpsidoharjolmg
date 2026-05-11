@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, orderBy, Timestamp, doc, runTransaction } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { Saving, Loan, Member } from '../types';
-import { Wallet, Landmark, ArrowRight, Plus, Search, FileText, X, Loader2 } from 'lucide-react';
+import { Wallet, Landmark, ArrowRight, Plus, Search, FileText, X, Loader2, DollarSign, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Error Handler helper
@@ -46,12 +46,23 @@ export default function Financials() {
   
   const [showAddSaving, setShowAddSaving] = useState(false);
   const [showAddLoan, setShowAddLoan] = useState(false);
+  const [showAddRepayment, setShowAddRepayment] = useState(false);
+  const [repayments, setRepayments] = useState<any[]>([]);
+
+  // Selection for printing receipts
+  const [printData, setPrintData] = useState<any>(null);
 
   // Form states
   const [newSaving, setNewSaving] = useState<Partial<Saving>>({
     memberId: '',
     amount: 0,
     type: 'wajib'
+  });
+
+  const [newRepayment, setNewRepayment] = useState({
+    loanId: '',
+    amount: 0,
+    date: new Date().toISOString()
   });
 
   const [newLoan, setNewLoan] = useState<Partial<Loan>>({
@@ -82,26 +93,29 @@ export default function Financials() {
 
   const calculateCashFlow = async () => {
     try {
-      const [savingsSnap, transactionsSnap, loansSnap] = await Promise.all([
+      const [savingsSnap, transactionsSnap, loansSnap, repaymentsSnap] = await Promise.all([
         getDocs(collection(db, 'savings')),
         getDocs(collection(db, 'transactions')),
-        getDocs(query(collection(db, 'loans'), orderBy('date', 'desc')))
+        getDocs(query(collection(db, 'loans'), orderBy('date', 'desc'))),
+        getDocs(collection(db, 'repayments'))
       ]);
 
       const totalSavings = savingsSnap.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
       const totalSales = transactionsSnap.docs
-        .filter(doc => doc.data().type === 'sale')
+        .filter(doc => doc.data().type === 'sale' && doc.data().paymentMethod === 'cash')
         .reduce((acc, doc) => acc + (doc.data().totalAmount || 0), 0);
+      
+      const totalRepayments = repaymentsSnap.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
       
       const totalPurchases = transactionsSnap.docs
         .filter(doc => doc.data().type === 'purchase')
         .reduce((acc, doc) => acc + (doc.data().totalAmount || 0), 0);
       
       const totalDisbursements = loansSnap.docs
-        .filter(doc => doc.data().status === 'active' || doc.data().status === 'completed')
+        .filter(doc => (doc.data().status === 'active' || doc.data().status === 'completed') && doc.data().type === 'cash')
         .reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
 
-      const debit = totalSavings + totalSales;
+      const debit = totalSavings + totalSales + totalRepayments;
       const credit = totalPurchases + totalDisbursements;
 
       setCashFlow({
@@ -109,6 +123,8 @@ export default function Financials() {
         credit,
         balance: debit - credit
       });
+
+      setRepayments(repaymentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (error) {
       console.error("Cash flow error:", error);
     }
@@ -155,6 +171,49 @@ export default function Financials() {
     }
   };
 
+  const handleRepayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRepayment.loanId || newRepayment.amount <= 0) return;
+    setProcessing(true);
+    try {
+      await runTransaction(db, async (transaction) => {
+        const loanRef = doc(db, 'loans', newRepayment.loanId);
+        const loanDoc = await transaction.get(loanRef);
+        if (!loanDoc.exists()) throw new Error("Pinjaman tidak ditemukan");
+        
+        const currentRemaining = loanDoc.data().remainingAmount ?? loanDoc.data().totalPayable;
+        const newRemaining = currentRemaining - newRepayment.amount;
+        
+        if (newRemaining < -1) {
+           throw new Error("Jumlah bayar melebihi sisa hutang");
+        }
+
+        const repaymentRef = doc(collection(db, 'repayments'));
+        transaction.set(repaymentRef, {
+          ...newRepayment,
+          memberId: loanDoc.data().memberId,
+          type: loanDoc.data().type,
+          date: new Date().toISOString()
+        });
+
+        transaction.update(loanRef, {
+          remainingAmount: Math.max(0, newRemaining),
+          status: newRemaining <= 0 ? 'completed' : 'active',
+          updatedAt: new Date().toISOString()
+        });
+      });
+      
+      setShowAddRepayment(false);
+      setNewRepayment({ loanId: '', amount: 0, date: new Date().toISOString() });
+      fetchData();
+      calculateCashFlow();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'repayments');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleSaveSaving = async (e: React.FormEvent) => {
     e.preventDefault();
     setProcessing(true);
@@ -163,10 +222,12 @@ export default function Financials() {
         ...newSaving,
         date: new Date().toISOString(),
       };
-      await addDoc(collection(db, 'savings'), data);
+      const res = await addDoc(collection(db, 'savings'), data);
+      setPrintData({ ...data, id: res.id, memberName: members.find(m => m.id === newSaving.memberId)?.name, printType: 'saving' });
       setShowAddSaving(false);
       setNewSaving({ memberId: '', amount: 0, type: 'wajib' });
       fetchData();
+      calculateCashFlow();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'savings');
     } finally {
@@ -208,12 +269,21 @@ export default function Financials() {
         </div>
         <div className="flex gap-4">
           <button 
-            onClick={() => activeTab === 'savings' ? setShowAddSaving(true) : setShowAddLoan(true)}
+            onClick={() => showAddRepayment ? setShowAddRepayment(false) : (activeTab === 'savings' ? setShowAddSaving(true) : setShowAddLoan(true))}
             className="flex items-center gap-2 bg-[#141414] text-[#E4E3E0] px-6 py-3 rounded-full font-mono text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg"
           >
             <Plus size={16} />
             {activeTab === 'savings' ? 'INPUT SIMPANAN' : 'PENGAJUAN PINJAMAN'}
           </button>
+          {activeTab === 'loans' && (
+            <button 
+              onClick={() => setShowAddRepayment(true)}
+              className="flex items-center gap-2 border border-[#141414] text-[#141414] px-6 py-3 rounded-full font-mono text-[10px] tracking-widest hover:bg-[#141414] hover:text-white transition-all"
+            >
+              <DollarSign size={16} />
+              BAYAR ANGSURAN
+            </button>
+          )}
         </div>
       </header>
 
@@ -252,7 +322,8 @@ export default function Financials() {
                   <th className="p-4">Keterangan/Tipe</th>
                   <th className="p-4">Tenor/Bunga</th>
                   <th className="p-4 text-right">Pokok</th>
-                  <th className="p-4 text-right">Angsuran/Bln</th>
+                  <th className="p-4 text-right">Sisa Hutang</th>
+                  <th className="p-4 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="text-xs font-mono">
@@ -265,6 +336,14 @@ export default function Financials() {
                       </td>
                       <td className="p-4 uppercase">{s.type}</td>
                       <td className="p-4 text-right font-bold">Rp {s.amount.toLocaleString()}</td>
+                      <td className="p-4 text-right">
+                        <button 
+                          onClick={() => setPrintData({ ...s, memberName: members.find(m => m.id === s.memberId)?.name, printType: 'saving' })}
+                          className="p-1 hover:bg-stone-200 rounded"
+                        >
+                          <FileText size={14} />
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
@@ -280,6 +359,7 @@ export default function Financials() {
                           <span className={`text-[8px] px-1.5 py-0.5 rounded border border-[#141414] ${
                             l.status === 'active' ? 'bg-green-50 text-green-700' : 
                             l.status === 'pending' ? 'bg-orange-50 text-orange-700' :
+                            l.status === 'completed' ? 'bg-blue-50 text-blue-700' :
                             'bg-red-50 text-red-700'
                           }`}>{l.status.toUpperCase()}</span>
                         </div>
@@ -287,14 +367,14 @@ export default function Financials() {
                           <div className="flex gap-2 mt-2">
                             <button 
                               disabled={processing}
-                              onClick={() => handleUpdateLoanStatus(l.id, 'active')}
+                              onClick={() => handleUpdateLoanStatus(l.id!, 'active')}
                               className="px-2 py-1 bg-[#141414] text-white rounded text-[8px] hover:bg-stone-800 transition-colors"
                             >
                               SETUJUI
                             </button>
                             <button 
                               disabled={processing}
-                              onClick={() => handleUpdateLoanStatus(l.id, 'rejected')}
+                              onClick={() => handleUpdateLoanStatus(l.id!, 'rejected')}
                               className="px-2 py-1 border border-red-600 text-red-600 rounded text-[8px] hover:bg-red-50 transition-colors"
                             >
                               TOLAK
@@ -306,8 +386,16 @@ export default function Financials() {
                         {l.durationMonths} Bln / {l.interest}%
                       </td>
                       <td className="p-4 text-right font-bold">Rp {l.amount.toLocaleString()}</td>
-                      <td className="p-4 text-right font-bold text-blue-600">
-                        Rp {(l.totalPayable / l.durationMonths).toLocaleString()}
+                      <td className="p-4 text-right font-bold text-red-600">
+                        Rp {(l.remainingAmount ?? l.totalPayable).toLocaleString()}
+                      </td>
+                      <td className="p-4 text-right">
+                        <button 
+                          onClick={() => setPrintData({ ...l, memberName: members.find(m => m.id === l.memberId)?.name, printType: 'loan' })}
+                          className="p-1 hover:bg-stone-200 rounded"
+                        >
+                          <FileText size={14} />
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -423,8 +511,8 @@ export default function Financials() {
                   <div className="space-y-1">
                     <label className="text-[10px] font-mono uppercase opacity-50">Tipe Pinjaman</label>
                     <select value={newLoan.type} onChange={e => setNewLoan({...newLoan, type: e.target.value as any})} className="w-full border border-[#141414] rounded-lg p-3 font-mono text-xs">
-                      <option value="cash">TUNAI</option>
-                      <option value="goods">BARANG</option>
+                      <option value="cash">TUNAI (PINJAM UANG)</option>
+                      <option value="goods">BARANG (KREDIT TOKO)</option>
                     </select>
                   </div>
                   <div className="space-y-1">
@@ -458,9 +546,6 @@ export default function Financials() {
                       <span className="font-serif italic">Total Angsuran Per Bulan</span>
                       <span>Rp {getMonthlyInstallment().toLocaleString()}</span>
                     </div>
-                    <div className="text-[10px] font-mono text-stone-400 mt-2 italic">
-                      * Total pengembalian: Rp {(getMonthlyInstallment() * (newLoan.durationMonths || 1)).toLocaleString()}
-                    </div>
                   </div>
                 )}
                 <button disabled={processing} type="submit" className="w-full bg-[#141414] text-white py-4 rounded-xl font-mono text-[10px] tracking-widest mt-4">
@@ -468,6 +553,127 @@ export default function Financials() {
                 </button>
               </form>
             </motion.div>
+          </div>
+        )}
+
+        {showAddRepayment && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#141414]/40 backdrop-blur-sm" onClick={() => setShowAddRepayment(false)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white max-w-lg w-full rounded-2xl shadow-2xl border border-[#141414] z-10 overflow-hidden">
+              <div className="p-6 border-b border-[#141414] flex justify-between items-center">
+                <h3 className="font-serif italic text-xl">Bayar Angsuran</h3>
+                <button onClick={() => setShowAddRepayment(false)}><X size={20}/></button>
+              </div>
+              <form onSubmit={handleRepayment} className="p-6 space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-mono uppercase opacity-50">Cari Pinjaman Aktif</label>
+                  <select required value={newRepayment.loanId} onChange={e => {
+                    const loan = loans.find(l => l.id === e.target.value);
+                    setNewRepayment({...newRepayment, loanId: e.target.value, amount: Math.ceil(loan?.totalPayable! / loan?.durationMonths!)});
+                  }} className="w-full border border-[#141414] rounded-lg p-3 font-sans">
+                    <option value="">Pilih Pinjaman</option>
+                    {loans.filter(l => l.status === 'active').map(l => (
+                      <option key={l.id} value={l.id}>
+                        {members.find(m => m.id === l.memberId)?.name} - {l.type.toUpperCase()} (Sisa: Rp {(l.remainingAmount ?? l.totalPayable).toLocaleString()})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {newRepayment.loanId && (
+                  <>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono uppercase opacity-50">Jumlah Setoran (Rp)</label>
+                      <input required type="number" value={newRepayment.amount} onChange={e => setNewRepayment({...newRepayment, amount: Number(e.target.value)})} className="w-full border border-[#141414] rounded-lg p-3 font-mono text-sm" />
+                    </div>
+                    <div className="bg-blue-50 p-4 border border-blue-200 rounded-xl">
+                      <p className="text-[10px] font-mono text-blue-800 uppercase">Informasi Sisa</p>
+                      <p className="text-sm font-bold text-blue-900 mt-1">
+                        Sisa baru: Rp {((loans.find(l => l.id === newRepayment.loanId)?.remainingAmount ?? loans.find(l => l.id === newRepayment.loanId)?.totalPayable!) - newRepayment.amount).toLocaleString()}
+                      </p>
+                    </div>
+                  </>
+                )}
+                <button disabled={processing} type="submit" className="w-full bg-[#141414] text-white py-4 rounded-xl font-mono text-[10px] tracking-widest mt-4">
+                   {processing ? <Loader2 className="animate-spin mx-auto" /> : 'PROSES PEMBAYARAN'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {printData && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 print:p-0 print:static">
+            <div className="absolute inset-0 bg-white z-40 print:hidden" />
+            <div className="bg-white max-w-sm w-full p-8 relative z-50 print:p-0 print:shadow-none border border-dashed border-[#141414]/20">
+              <button 
+                onClick={() => setPrintData(null)}
+                className="absolute top-4 right-4 p-2 hover:bg-stone-100 rounded-full print:hidden"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="text-center space-y-2 mb-8 border-b-2 border-[#141414] pb-6">
+                <h2 className="text-xl font-serif italic font-bold">KOPERASI MAJU JAYA</h2>
+                <p className="text-[10px] font-mono opacity-60 uppercase">Jl. Raya No. 123, Sidoarjo</p>
+                <p className="text-[10px] font-mono opacity-60">Telp: 0812-3456-7890</p>
+              </div>
+
+              <div className="mb-8">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-serif italic font-bold uppercase underline">
+                    {printData.printType === 'saving' ? 'KWITANSI SIMPANAN' : 'KWITANSI PINJAMAN'}
+                  </h3>
+                  <span className="text-[8px] font-mono opacity-50">#{printData.id?.slice(-8).toUpperCase()}</span>
+                </div>
+                
+                <div className="space-y-4 text-xs font-mono">
+                  <div className="flex justify-between">
+                    <span className="opacity-50">TANGGAL</span>
+                    <span>{new Date(printData.date).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="opacity-50">ANGGOTA</span>
+                    <span className="font-bold">{printData.memberName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="opacity-50">KETERANGAN</span>
+                    <span className="uppercase">{printData.type}</span>
+                  </div>
+                  <div className="mt-6 pt-4 border-t border-dashed border-[#141414]">
+                    <div className="flex justify-between items-end">
+                      <span className="font-bold">TOTAL</span>
+                      <span className="text-xl font-bold">Rp {printData.amount.toLocaleString()}</span>
+                    </div>
+                    {printData.printType === 'loan' && (
+                       <div className="mt-2 text-[10px] opacity-60">
+                         Tenor: {printData.durationMonths} Bulan - Bunga: {printData.interest}%
+                       </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-8 text-[10px] font-mono text-center mt-12">
+                <div className="space-y-12">
+                  <p>Anggota</p>
+                  <p className="font-bold border-t border-[#141414] pt-1 uppercase">{printData.memberName}</p>
+                </div>
+                <div className="space-y-12">
+                  <p>Petugas</p>
+                  <p className="font-bold border-t border-[#141414] pt-1 uppercase">ADMIN</p>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-4 border-t border-[#141414]/10 text-center print:hidden">
+                <button 
+                  onClick={() => window.print()}
+                  className="w-full bg-[#141414] text-white py-3 rounded-lg font-mono text-[10px] tracking-widest flex items-center justify-center gap-2"
+                >
+                  <FileText size={14} />
+                  CETAK KWITANSI
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </AnimatePresence>

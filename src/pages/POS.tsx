@@ -20,6 +20,9 @@ import {
   Wallet,
   CheckCircle,
   Loader2,
+  X,
+  FileText,
+  Printer,
   Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -33,6 +36,7 @@ export default function POS() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [printData, setPrintData] = useState<any>(null);
   
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedMember, setSelectedMember] = useState<string>('');
@@ -134,6 +138,16 @@ export default function POS() {
           };
           transaction.set(loanRef, loanData);
         }
+      });
+
+      const memberName = selectedMember ? members.find(m => m.id === selectedMember)?.name : 'UMUM';
+      setPrintData({
+        date: new Date().toISOString(),
+        total,
+        items: [...cart],
+        memberName,
+        paymentMethod,
+        id: Math.random().toString(36).substr(2, 9).toUpperCase()
       });
 
       setCart([]);
@@ -313,6 +327,78 @@ export default function POS() {
           </button>
         </div>
       </div>
+      <AnimatePresence>
+        {printData && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 print:p-0 print:static">
+            <div className="absolute inset-0 bg-white z-40 print:hidden" />
+            <div className="bg-white max-w-sm w-full p-8 relative z-50 print:p-0 print:shadow-none border border-dashed border-[#141414]/20">
+              <button 
+                onClick={() => setPrintData(null)}
+                className="absolute top-4 right-4 p-2 hover:bg-stone-100 rounded-full print:hidden"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="text-center space-y-2 mb-8 border-b-2 border-[#141414] pb-6">
+                <h2 className="text-xl font-serif italic font-bold">KOPERASI MAJU JAYA</h2>
+                <p className="text-[10px] font-mono opacity-60 uppercase">Nota Penjualan</p>
+                <p className="text-[10px] font-mono opacity-60">Telp: 0812-3456-7890</p>
+              </div>
+
+              <div className="mb-8">
+                <div className="flex justify-between items-center mb-4 text-[10px] font-mono whitespace-nowrap overflow-hidden">
+                   <span>{new Date(printData.date).toLocaleString()}</span>
+                   <span>#{printData.id}</span>
+                </div>
+                
+                <div className="space-y-2 text-xs font-mono">
+                  <div className="flex justify-between border-b border-[#141414]/10 pb-2 mb-2">
+                    <span className="opacity-50 uppercase">Item</span>
+                    <span className="opacity-50 uppercase">Total</span>
+                  </div>
+                  {printData.items.map((item: any, idx: number) => (
+                    <div key={idx} className="flex justify-between gap-4">
+                      <div className="flex-1">
+                        <p>{item.name}</p>
+                        <p className="text-[10px] opacity-50">{item.qty} x Rp {item.price.toLocaleString()}</p>
+                      </div>
+                      <span className="font-bold">Rp {(item.qty * item.price).toLocaleString()}</span>
+                    </div>
+                  ))}
+                  
+                  <div className="mt-6 pt-4 border-t-2 border-[#141414]">
+                    <div className="flex justify-between items-end">
+                      <span className="font-bold">TOTAL</span>
+                      <span className="text-xl font-bold">Rp {printData.total.toLocaleString()}</span>
+                    </div>
+                    <div className="mt-2 text-[10px] opacity-60 uppercase">
+                      PEMBAYARAN: {printData.paymentMethod}
+                    </div>
+                    <div className="text-[10px] opacity-60 uppercase">
+                      PEMBELI: {printData.memberName}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center space-y-2 mt-12 pt-8 border-t border-dashed border-[#141414]">
+                 <p className="text-[10px] font-mono opacity-60">TERIMA KASIH ATAS KUNJUNGANNYA</p>
+                 <p className="text-[10px] font-mono opacity-60">Barang yang sudah dibeli tidak dapat ditukar/dikembalikan</p>
+              </div>
+
+              <div className="mt-8 pt-4 border-t border-[#141414]/10 text-center print:hidden">
+                <button 
+                  onClick={() => window.print()}
+                  className="w-full bg-[#141414] text-white py-3 rounded-lg font-mono text-[10px] tracking-widest flex items-center justify-center gap-2"
+                >
+                  <Printer size={14} />
+                  CETAK NOTA
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Member } from '../types';
-import { Plus, Search, MoreHorizontal, UserPlus, Phone, MapPin, Loader2, CheckCircle, XCircle, UserCheck, UserMinus } from 'lucide-react';
+import { Member, Saving, Loan } from '../types';
+import { Plus, Search, MoreHorizontal, UserPlus, Phone, MapPin, Loader2, CheckCircle, XCircle, UserCheck, UserMinus, ChevronDown, ChevronUp, Wallet, ArrowDownCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Members() {
   const [members, setMembers] = useState<Member[]>([]);
+  const [savings, setSavings] = useState<Saving[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [search, setSearch] = useState('');
@@ -26,12 +29,17 @@ export default function Members() {
   const fetchMembers = async () => {
     setLoading(true);
     try {
-      const q = query(collection(db, 'members'), orderBy('name', 'asc'));
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(data);
+      const [membersSnap, savingsSnap, loansSnap] = await Promise.all([
+        getDocs(query(collection(db, 'members'), orderBy('name', 'asc'))),
+        getDocs(collection(db, 'savings')),
+        getDocs(collection(db, 'loans'))
+      ]);
+      
+      setMembers(membersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member)));
+      setSavings(savingsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Saving)));
+      setLoans(loansSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Loan)));
     } catch (error) {
-      console.error("Error fetching members:", error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
@@ -116,8 +124,7 @@ export default function Members() {
           <thead>
             <tr className="border-b border-[#141414] bg-stone-50 font-serif italic text-xs opacity-50">
               <th className="p-4 font-normal">NAMA ANGGOTA</th>
-              <th className="p-4 font-normal">KONTAK</th>
-              <th className="p-4 font-normal">ALAMAT</th>
+              <th className="p-4 font-normal">SIMPANAN & HUTANG</th>
               <th className="p-4 font-normal text-center">STATUS</th>
               <th className="p-4 font-normal text-right">AKSI</th>
             </tr>
@@ -126,60 +133,126 @@ export default function Members() {
             {loading ? (
               [...Array(5)].map((_, i) => (
                 <tr key={i} className="animate-pulse">
-                  <td colSpan={5} className="p-4 h-12 bg-stone-50/50" />
+                  <td colSpan={4} className="p-4 h-12 bg-stone-50/50" />
                 </tr>
               ))
             ) : filteredMembers.length === 0 ? (
               <tr>
-                <td colSpan={5} className="p-12 text-center text-stone-400 italic">Data anggota tidak ditemukan</td>
+                <td colSpan={4} className="p-12 text-center text-stone-400 italic">Data anggota tidak ditemukan</td>
               </tr>
             ) : (
-              filteredMembers.map((member) => (
-                <tr key={member.id} className="hover:bg-stone-50 group">
-                  <td className="p-4">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-[#141414] text-sm font-sans">{member.name}</span>
-                      <span className="text-[10px] opacity-40 uppercase">ID: {member.id?.slice(0, 8)}</span>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2 opacity-60">
-                      <Phone size={12} />
-                      {member.phone || '-'}
-                    </div>
-                  </td>
-                  <td className="p-4 w-1/3">
-                    <div className="flex items-center gap-2 opacity-60">
-                      <MapPin size={12} className="shrink-0" />
-                      <span className="truncate">{member.address || '-'}</span>
-                    </div>
-                  </td>
-                  <td className="p-4 text-center">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                      member.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {member.status === 'active' ? <CheckCircle size={10} /> : <XCircle size={10} />}
-                      {member.status === 'active' ? 'Aktif' : 'Nonaktif'}
-                    </span>
-                  </td>
-                  <td className="p-4 text-right">
-                    <button 
-                      disabled={!!processing}
-                      onClick={() => toggleStatus(member.id!, member.status)}
-                      className={`p-2 rounded-lg transition-all border ${
-                        member.status === 'active' 
-                        ? 'text-red-500 hover:bg-red-50 border-transparent hover:border-red-100' 
-                        : 'text-green-500 hover:bg-green-50 border-transparent hover:border-green-100'
-                      } disabled:opacity-50`}
-                      title={member.status === 'active' ? 'Nonaktifkan' : 'Aktifkan'}
-                    >
-                      {processing === member.id ? <Loader2 size={16} className="animate-spin" /> : (
-                        member.status === 'active' ? <UserMinus size={16} /> : <UserCheck size={16} />
+              filteredMembers.map((member) => {
+                const memberSavings = savings.filter(s => s.memberId === member.id);
+                const memberLoans = loans.filter(l => l.memberId === member.id);
+                
+                const totalSaving = memberSavings.reduce((acc, s) => acc + s.amount, 0);
+                const totalDebt = memberLoans
+                  .filter(l => l.status === 'active')
+                  .reduce((acc, l) => acc + (l.remainingAmount ?? l.totalPayable), 0);
+
+                return (
+                  <React.Fragment key={member.id}>
+                    <tr className={`hover:bg-stone-50 group cursor-pointer ${expandedId === member.id ? 'bg-stone-50' : ''}`} onClick={() => setExpandedId(expandedId === member.id ? null : member.id)}>
+                      <td className="p-4">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-[#141414] text-sm font-sans">{member.name}</span>
+                          <span className="text-[10px] opacity-40 uppercase">ID: {member.id?.slice(0, 8)}</span>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex gap-6">
+                          <div className="flex flex-col">
+                            <span className="text-[8px] opacity-40 uppercase">Total Simpanan</span>
+                            <span className="text-green-600 font-bold">Rp {totalSaving.toLocaleString()}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[8px] opacity-40 uppercase">Total Hutang</span>
+                            <span className="text-red-500 font-bold">Rp {totalDebt.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                          member.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {member.status === 'active' ? <CheckCircle size={10} /> : <XCircle size={10} />}
+                          {member.status === 'active' ? 'Aktif' : 'Nonaktif'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex justify-end gap-2" onClick={e => e.stopPropagation()}>
+                          <button 
+                            disabled={!!processing}
+                            onClick={() => toggleStatus(member.id!, member.status)}
+                            className={`p-2 rounded-lg transition-all border ${
+                              member.status === 'active' 
+                              ? 'text-red-500 hover:bg-red-50 border-transparent hover:border-red-100' 
+                              : 'text-green-500 hover:bg-green-50 border-transparent hover:border-green-100'
+                            } disabled:opacity-50`}
+                          >
+                            {processing === member.id ? <Loader2 size={16} className="animate-spin" /> : (
+                              member.status === 'active' ? <UserMinus size={16} /> : <UserCheck size={16} />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    <AnimatePresence>
+                      {expandedId === member.id && (
+                        <tr>
+                          <td colSpan={4} className="p-0 bg-stone-50 border-b border-[#141414]/5">
+                            <motion.div 
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="p-8 grid grid-cols-2 gap-8 border-t border-[#141414]/5">
+                                {/* Savings Breakdown */}
+                                <div className="space-y-4">
+                                  <h4 className="font-serif italic text-sm border-b border-[#141414] pb-2">Rincian Tabungan</h4>
+                                  <div className="space-y-2 font-mono text-[10px]">
+                                    <div className="flex justify-between">
+                                      <span className="opacity-50">POKOK</span>
+                                      <span>Rp {memberSavings.filter(s => s.type === 'pokok').reduce((a, b) => a + b.amount, 0).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="opacity-50">WAJIB</span>
+                                      <span>Rp {memberSavings.filter(s => s.type === 'wajib').reduce((a, b) => a + b.amount, 0).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="opacity-50">SUKARELA</span>
+                                      <span>Rp {memberSavings.filter(s => s.type === 'sukarela').reduce((a, b) => a + b.amount, 0).toLocaleString()}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                {/* Loans Breakdown */}
+                                <div className="space-y-4">
+                                  <h4 className="font-serif italic text-sm border-b border-[#141414] pb-2">Rincian Hutang Aktif</h4>
+                                  <div className="space-y-2 font-mono text-[10px]">
+                                    <div className="flex justify-between">
+                                      <span className="opacity-50">PINJAMAN TUNAI</span>
+                                      <span>Rp {memberLoans.filter(l => l.type === 'cash' && l.status === 'active').reduce((a, b) => a + (b.remainingAmount ?? b.totalPayable), 0).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="opacity-50">KREDIT BARANG</span>
+                                      <span>Rp {memberLoans.filter(l => l.type === 'goods' && l.status === 'active').reduce((a, b) => a + (b.remainingAmount ?? b.totalPayable), 0).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between pt-2 border-t border-[#141414]/10 text-xs font-bold text-red-600">
+                                      <span className="font-serif italic">Total Hutang</span>
+                                      <span>Rp {totalDebt.toLocaleString()}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          </td>
+                        </tr>
                       )}
-                    </button>
-                  </td>
-                </tr>
-              ))
+                    </AnimatePresence>
+                  </React.Fragment>
+                );
+              })
             )}
           </tbody>
         </table>

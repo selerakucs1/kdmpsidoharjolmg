@@ -1,6 +1,6 @@
 {
   "name": "KDMP Sidoharjo Lamongan",
-  "description": "Sistem Informasi Koperasi Desa Mandiri Pangan (KDMP) Kelurahan Sidoharjo, Lamongan. Mengelola Anggota, Supplier, Simpan Pinjam, dan Inventaris.",
+  "description": "Sistem Informasi Koperasi Desa Mandiri Pangan (KDMP) Sidoharjo, Lamongan. Dilengkapi dengan manajemen anggota, inventaris, POS (Kasir), Simpan-Pinjam, Pembayaran Angsuran, Serta Cetak Kwitansi & Nota.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
