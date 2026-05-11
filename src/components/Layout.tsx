@@ -1,0 +1,109 @@
+import { ReactNode } from 'react';
+import { NavLink } from 'react-router-dom';
+import { User } from 'firebase/auth';
+import { 
+  LayoutDashboard, 
+  Users, 
+  Package, 
+  Wallet, 
+  History, 
+  LogOut,
+  ChevronRight,
+  ShoppingCart,
+  Settings
+} from 'lucide-react';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import { AnimatePresence } from 'motion/react';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+interface LayoutProps {
+  children: ReactNode;
+  user: User;
+  userRole?: string;
+  onLogout: () => void;
+}
+
+export default function Layout({ children, user, userRole, onLogout }: LayoutProps) {
+  const navItems = [
+    { to: '/', label: 'Overview', icon: LayoutDashboard },
+    { to: '/pos', label: 'Penjualan', icon: ShoppingCart },
+    { to: '/members', label: 'Anggota', icon: Users },
+    { to: '/inventory', label: 'Stok', icon: Package },
+    { to: '/financials', label: 'Simpan Pinjam', icon: Wallet },
+    { to: '/transactions', label: 'Log Transaksi', icon: History },
+  ];
+
+  if (userRole === 'admin' || user.email === 'seleraku.cs1@gmail.com') {
+    navItems.push({ to: '/staff', label: 'Kelola Staf', icon: Settings });
+  }
+
+  return (
+    <div className="flex h-screen bg-[#E4E3E0] text-[#141414] font-sans overflow-hidden">
+      {/* Sidebar */}
+      <aside className="w-64 border-r border-[#141414] flex flex-col">
+        <div className="p-8 border-bottom border-[#141414]">
+          <h1 className="font-serif italic text-2xl tracking-tight">Sidoharjo</h1>
+          <p className="text-[10px] uppercase font-mono mt-1 opacity-50 tracking-widest text-[#141414]">KDMP Management v1.0</p>
+        </div>
+
+        <nav className="flex-1 px-4 py-4 space-y-1">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) => cn(
+                "flex items-center justify-between p-3 rounded-lg transition-all duration-200 group font-mono text-sm",
+                isActive 
+                  ? "bg-[#141414] text-[#E4E3E0]" 
+                  : "hover:bg-[#d4d3d0] text-[#141414]/70 hover:text-[#141414]"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <item.icon size={18} />
+                <span>{item.label}</span>
+              </div>
+              <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-[#141414] space-y-4">
+          <div className="flex items-center gap-3 px-3">
+            {user.photoURL ? (
+              <img src={user.photoURL} alt={user.displayName || ''} className="w-8 h-8 rounded-full border border-[#141414]" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-[#141414] text-[#E4E3E0] flex items-center justify-center text-xs font-mono">
+                {user.displayName?.[0] || 'U'}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-mono truncate font-bold">{user.displayName}</p>
+              <p className="text-[9px] font-mono opacity-50 truncate select-all" title="Klik untuk menyalin">ID: {user.uid}</p>
+              <p className="text-[9px] font-mono text-green-600 uppercase mt-1">Staff Administrasi</p>
+            </div>
+          </div>
+          <button 
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 p-3 text-sm font-mono hover:bg-[#141414] hover:text-[#E4E3E0] rounded-lg transition-all cursor-pointer"
+          >
+            <LogOut size={18} />
+            <span>Keluar Sistem</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto">
+        <AnimatePresence mode="wait">
+          <div className="min-h-full">
+            {children}
+          </div>
+        </AnimatePresence>
+      </main>
+    </div>
+  );
+}

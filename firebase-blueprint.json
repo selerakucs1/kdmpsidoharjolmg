@@ -1,0 +1,112 @@
+{
+  "entities": {
+    "Member": {
+      "title": "Anggota",
+      "description": "Data anggota koperasi Sidoharjo",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "joinDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["active", "inactive"] }
+      },
+      "required": ["name", "status"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Daftar penyuplai barang",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "contactPerson": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Item": {
+      "title": "Barang",
+      "description": "Inventaris barang koperasi",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "unit": { "type": "string" },
+        "price": { "type": "number" },
+        "stock": { "type": "number" },
+        "supplierId": { "type": "string" }
+      },
+      "required": ["name", "price", "stock"]
+    },
+    "Saving": {
+      "title": "Simpanan",
+      "description": "Catatan simpanan anggota",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "memberId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["pokok", "wajib", "sukarela"] }
+      },
+      "required": ["memberId", "amount", "type"]
+    },
+    "Loan": {
+      "title": "Pinjaman",
+      "description": "Catatan pinjaman anggota (angsuran/barang)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "memberId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "amount": { "type": "number" },
+        "interest": { "type": "number" },
+        "totalPayable": { "type": "number" },
+        "durationMonths": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected", "active", "completed"] },
+        "type": { "type": "string", "enum": ["cash", "goods"] }
+      },
+      "required": ["memberId", "amount", "status", "type"]
+    },
+    "Transaction": {
+      "title": "Transaksi",
+      "description": "Pembelian atau Penjualan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "enum": ["purchase", "sale"] },
+        "paymentMethod": { "type": "string", "enum": ["cash", "credit"] },
+        "memberId": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "itemId": { "type": "string" },
+              "name": { "type": "string" },
+              "qty": { "type": "number" },
+              "price": { "type": "number" }
+            }
+          }
+        }
+      },
+      "required": ["date", "type", "totalAmount", "paymentMethod"]
+    }
+  },
+  "firestore": {
+    "/members/{memberId}": { "schema": "Member", "description": "Collection of KDMP members" },
+    "/suppliers/{supplierId}": { "schema": "Supplier", "description": "Collection of suppliers" },
+    "/items/{itemId}": { "schema": "Item", "description": "Collection of goods/inventory" },
+    "/savings/{savingId}": { "schema": "Saving", "description": "Individual saving records" },
+    "/loans/{loanId}": { "schema": "Loan", "description": "Loan records and schedules" },
+    "/transactions/{transactionId}": { "schema": "Transaction", "description": "Sales and purchases" }
+  }
+}
