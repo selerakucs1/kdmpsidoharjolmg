@@ -173,12 +173,12 @@ export default function Dashboard() {
   return (
     <div className="p-8 space-y-8">
       {/* Header */}
-      <header className="flex justify-between items-end">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <span className="font-serif italic text-sm opacity-50 block mb-1">Rangkuman Sistem</span>
-          <h1 className="text-4xl font-serif italic tracking-tight">Overview Operasional</h1>
+          <h1 className="text-3xl sm:text-4xl font-serif italic tracking-tight">Overview Operasional</h1>
         </div>
-        <div className="text-right font-mono text-[10px] space-y-1">
+        <div className="text-left sm:text-right font-mono text-[10px] space-y-1">
           <p>STATUS: ONLINE</p>
           <p>LAST SYNC: {new Date().toLocaleTimeString()}</p>
         </div>

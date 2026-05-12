@@ -25,14 +25,14 @@ export default function Transactions() {
   };
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-8 space-y-8">
       <header>
-        <span className="font-serif italic text-sm opacity-50 block mb-1">Log Sistem</span>
-        <h1 className="text-4xl font-serif italic tracking-tight">Riwayat Transaksi</h1>
+        <span className="font-serif italic text-sm opacity-50 block mb-1 text-left">Log Sistem</span>
+        <h1 className="text-3xl sm:text-4xl font-serif italic tracking-tight text-left">Riwayat Transaksi</h1>
       </header>
 
-      <div className="bg-white border border-[#141414] rounded-xl overflow-hidden">
-        <table className="w-full text-left">
+      <div className="bg-white border border-[#141414] rounded-xl overflow-x-auto no-scrollbar">
+        <table className="w-full text-left min-w-[800px]">
           <thead>
             <tr className="bg-stone-50 border-b border-[#141414] font-mono text-[10px] opacity-40 uppercase">
               <th className="p-4">Timestamp</th>

@@ -262,15 +262,15 @@ export default function Financials() {
   return (
     <div className="p-8 space-y-8">
       {/* Header */}
-      <header className="flex justify-between items-end">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
         <div>
           <span className="font-serif italic text-sm opacity-50 block mb-1">Manajemen Keuangan</span>
-          <h1 className="text-4xl font-serif italic tracking-tight">Simpan Pinjam</h1>
+          <h1 className="text-3xl sm:text-4xl font-serif italic tracking-tight">Simpan Pinjam</h1>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <button 
             onClick={() => showAddRepayment ? setShowAddRepayment(false) : (activeTab === 'savings' ? setShowAddSaving(true) : setShowAddLoan(true))}
-            className="flex items-center gap-2 bg-[#141414] text-[#E4E3E0] px-6 py-3 rounded-full font-mono text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg"
+            className="flex items-center justify-center gap-2 bg-[#141414] text-[#E4E3E0] px-6 py-3 rounded-full font-mono text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg order-1"
           >
             <Plus size={16} />
             {activeTab === 'savings' ? 'INPUT SIMPANAN' : 'PENGAJUAN PINJAMAN'}
@@ -278,7 +278,7 @@ export default function Financials() {
           {activeTab === 'loans' && (
             <button 
               onClick={() => setShowAddRepayment(true)}
-              className="flex items-center gap-2 border border-[#141414] text-[#141414] px-6 py-3 rounded-full font-mono text-[10px] tracking-widest hover:bg-[#141414] hover:text-white transition-all"
+              className="flex items-center justify-center gap-2 border border-[#141414] text-[#141414] px-6 py-3 rounded-full font-mono text-[10px] tracking-widest hover:bg-[#141414] hover:text-white transition-all order-2"
             >
               <DollarSign size={16} />
               BAYAR ANGSURAN
@@ -288,19 +288,19 @@ export default function Financials() {
       </header>
 
       {/* Tabs */}
-      <div className="flex border-b border-[#141414]">
+      <div className="flex border-b border-[#141414] overflow-x-auto no-scrollbar">
         <button 
           onClick={() => setActiveTab('savings')}
-          className={`px-8 py-4 font-serif italic text-lg transition-all relative ${
+          className={`flex-none px-6 sm:px-8 py-4 font-serif italic text-base sm:text-lg transition-all relative ${
             activeTab === 'savings' ? 'text-[#141414]' : 'text-stone-400 opacity-50'
           }`}
         >
-          Tabungan Anggota
+          Tabungan
           {activeTab === 'savings' && <motion.div layoutId="fin-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-[#141414]" />}
         </button>
         <button 
           onClick={() => setActiveTab('loans')}
-          className={`px-8 py-4 font-serif italic text-lg transition-all relative ${
+          className={`flex-none px-6 sm:px-8 py-4 font-serif italic text-base sm:text-lg transition-all relative ${
             activeTab === 'loans' ? 'text-[#141414]' : 'text-stone-400 opacity-50'
           }`}
         >
@@ -312,9 +312,9 @@ export default function Financials() {
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Table View */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white border border-[#141414] rounded-xl overflow-hidden">
-            <table className="w-full text-left">
+        <div className="lg:col-span-2 space-y-4 overflow-hidden">
+          <div className="bg-white border border-[#141414] rounded-xl overflow-x-auto no-scrollbar">
+            <table className="w-full text-left min-w-[700px]">
               <thead>
                 <tr className="bg-stone-100 border-b border-[#141414] text-[10px] font-mono opacity-50 uppercase">
                   <th className="p-4">Tanggal</th>

@@ -47,15 +47,15 @@ export default function Staff() {
   if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-stone-400" /></div>;
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-8 space-y-8">
       <header>
-        <span className="font-serif italic text-sm opacity-50 block mb-1">Pengaturan Sistem</span>
-        <h1 className="text-4xl font-serif italic tracking-tight">Manajemen Staf</h1>
-        <p className="text-sm font-sans opacity-60 mt-2">Kelola siapa saja yang memiliki akses untuk menginput data ke sistem.</p>
+        <span className="font-serif italic text-sm opacity-50 block mb-1 text-left">Pengaturan Sistem</span>
+        <h1 className="text-3xl sm:text-4xl font-serif italic tracking-tight text-left">Manajemen Staf</h1>
+        <p className="text-sm font-sans opacity-60 mt-2 text-left">Kelola siapa saja yang memiliki akses untuk menginput data ke sistem.</p>
       </header>
 
-      <div className="bg-white border border-[#141414] rounded-2xl shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
+      <div className="bg-white border border-[#141414] rounded-2xl shadow-sm overflow-x-auto no-scrollbar">
+        <table className="w-full text-left border-collapse min-w-[700px]">
           <thead className="bg-[#141414] text-white font-mono text-[10px] tracking-widest uppercase">
             <tr>
               <th className="p-4">Staff Member</th>

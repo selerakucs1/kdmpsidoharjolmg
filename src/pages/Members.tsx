@@ -85,14 +85,14 @@ export default function Members() {
   return (
     <div className="p-8 space-y-8">
       {/* Header */}
-      <header className="flex justify-between items-end">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <span className="font-serif italic text-sm opacity-50 block mb-1">Manajemen Data</span>
-          <h1 className="text-4xl font-serif italic tracking-tight">Database Anggota</h1>
+          <h1 className="text-3xl sm:text-4xl font-serif italic tracking-tight">Database Anggota</h1>
         </div>
         <button 
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-[#141414] text-[#E4E3E0] px-6 py-3 rounded-full font-mono text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#141414] text-[#E4E3E0] px-6 py-3 rounded-full font-mono text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg"
         >
           <UserPlus size={16} />
           TAMBAH ANGGOTA
@@ -100,7 +100,7 @@ export default function Members() {
       </header>
 
       {/* Toolbar */}
-      <div className="flex gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
           <input 
@@ -112,15 +112,15 @@ export default function Members() {
           />
         </div>
         <div className="flex border border-[#141414] bg-white rounded-xl overflow-hidden font-mono text-[10px]">
-          <button className="px-6 py-3 bg-[#141414] text-white">SEMUA</button>
-          <button className="px-6 py-3 hover:bg-stone-50 border-l border-[#141414]">AKTIF</button>
-          <button className="px-6 py-3 hover:bg-stone-50 border-l border-[#141414]">NONAKTIF</button>
+          <button className="flex-1 px-4 sm:px-6 py-3 bg-[#141414] text-white">SEMUA</button>
+          <button className="flex-1 px-4 sm:px-6 py-3 hover:bg-stone-50 border-l border-[#141414]">AKTIF</button>
+          <button className="flex-1 px-4 sm:px-6 py-3 hover:bg-stone-50 border-l border-[#141414]">NON</button>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-[#141414] rounded-xl overflow-hidden shadow-sm">
-        <table className="w-full text-left border-collapse">
+      <div className="bg-white border border-[#141414] rounded-xl overflow-hidden shadow-sm overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[600px]">
           <thead>
             <tr className="border-b border-[#141414] bg-stone-50 font-serif italic text-xs opacity-50">
               <th className="p-4 font-normal">NAMA ANGGOTA</th>
@@ -207,7 +207,7 @@ export default function Members() {
                               exit={{ height: 0, opacity: 0 }}
                               className="overflow-hidden"
                             >
-                              <div className="p-8 grid grid-cols-2 gap-8 border-t border-[#141414]/5">
+                              <div className="p-4 sm:p-8 grid grid-cols-1 sm:grid-cols-2 gap-8 border-t border-[#141414]/5">
                                 {/* Savings Breakdown */}
                                 <div className="space-y-4">
                                   <h4 className="font-serif italic text-sm border-b border-[#141414] pb-2">Rincian Tabungan</h4>

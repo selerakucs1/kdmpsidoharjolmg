@@ -139,18 +139,18 @@ export default function Inventory() {
   return (
     <div className="p-8 space-y-8">
       {/* Header */}
-      <header className="flex justify-between items-end">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <span className="font-serif italic text-sm opacity-50 block mb-1">Manajemen Stok</span>
-          <h1 className="text-4xl font-serif italic tracking-tight">Inventaris & Supplier</h1>
+          <h1 className="text-3xl sm:text-4xl font-serif italic tracking-tight">Inventaris & Supplier</h1>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <button 
             onClick={() => setShowRestockModal(true)}
-            className="flex items-center gap-2 border border-[#141414] text-[#141414] px-6 py-3 rounded-full font-mono text-[10px] tracking-widest hover:bg-[#141414] hover:text-white transition-all shadow-sm"
+            className="flex items-center justify-center gap-2 border border-[#141414] text-[#141414] px-6 py-3 rounded-full font-mono text-[10px] tracking-widest hover:bg-[#141414] hover:text-white transition-all shadow-sm order-2 sm:order-1"
           >
             <Truck size={16} />
-            RESTOCK / PEMBELIAN
+            RESTOCK
           </button>
           <button 
             onClick={() => {
@@ -159,7 +159,7 @@ export default function Inventory() {
               setNewSupplier({ name: '', phone: '', address: '' });
               setShowAddModal(true);
             }}
-            className="flex items-center gap-2 bg-[#141414] text-[#E4E3E0] px-6 py-3 rounded-full font-mono text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg"
+            className="flex items-center justify-center gap-2 bg-[#141414] text-[#E4E3E0] px-6 py-3 rounded-full font-mono text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg order-1 sm:order-2"
           >
             <Plus size={16} />
             {activeTab === 'items' ? 'TAMBAH BARANG' : 'TAMBAH SUPPLIER'}
