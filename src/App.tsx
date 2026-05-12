@@ -130,7 +130,7 @@ export default function App() {
                     <span className="text-2xl font-serif italic text-white">K</span>
                   </div>
                   <h1 className="text-2xl sm:text-3xl font-serif italic text-[#141414] mb-2 tracking-tight">Koperasi Merah Putih</h1>
-                  <p className="text-stone-500 text-[10px] mb-8 uppercase tracking-widest font-mono font-bold">Portal Terpadu Desa Sidoharjo</p>
+                  <p className="text-stone-500 text-[10px] mb-8 uppercase tracking-widest font-mono font-bold">Portal Terpadu Kelurahan Sidoharjo</p>
                   
                   <div className="flex bg-stone-100 p-1 rounded-xl mb-8 font-mono text-[9px]">
                     <button 
