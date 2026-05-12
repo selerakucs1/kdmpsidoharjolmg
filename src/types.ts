@@ -3,6 +3,10 @@ export interface Member {
   name: string;
   address?: string;
   phone?: string;
+  cardNumber?: string;
+  birthDate?: string;
+  email?: string;
+  password?: string;
   joinDate?: string;
   status: 'active' | 'inactive';
 }

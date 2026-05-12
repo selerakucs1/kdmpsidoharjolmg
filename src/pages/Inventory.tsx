@@ -109,6 +109,8 @@ export default function Inventory() {
     e.preventDefault();
     setLoading(true);
     try {
+      if (restockData.qty <= 0) throw new Error("Jumlah harus lebih dari 0");
+      
       await runTransaction(db, async (transaction) => {
         const itemRef = doc(db, 'items', restockData.itemId);
         const itemDoc = await transaction.get(itemRef);
@@ -146,7 +148,10 @@ export default function Inventory() {
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <button 
-            onClick={() => setShowRestockModal(true)}
+            onClick={() => {
+              setRestockData({ itemId: '', qty: 0, supplierId: '', price: 0 });
+              setShowRestockModal(true);
+            }}
             className="flex items-center justify-center gap-2 border border-[#141414] text-[#141414] px-6 py-3 rounded-full font-mono text-[10px] tracking-widest hover:bg-[#141414] hover:text-white transition-all shadow-sm order-2 sm:order-1"
           >
             <Truck size={16} />

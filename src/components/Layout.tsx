@@ -32,16 +32,18 @@ interface LayoutProps {
 export default function Layout({ children, user, userRole, onLogout }: LayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const navItems = [
-    { to: '/', label: 'Overview', icon: LayoutDashboard },
-    { to: '/pos', label: 'Penjualan', icon: ShoppingCart },
-    { to: '/members', label: 'Anggota', icon: Users },
-    { to: '/inventory', label: 'Stok', icon: Package },
-    { to: '/financials', label: 'Simpan Pinjam', icon: Wallet },
-    { to: '/transactions', label: 'Log Transaksi', icon: History },
-  ];
+  const navItems = userRole === 'member' 
+    ? [{ to: '/portal', label: 'Monitor Portal', icon: LayoutDashboard }]
+    : [
+        { to: '/', label: 'Overview', icon: LayoutDashboard },
+        { to: '/pos', label: 'Penjualan', icon: ShoppingCart },
+        { to: '/members', label: 'Anggota', icon: Users },
+        { to: '/inventory', label: 'Stok', icon: Package },
+        { to: '/financials', label: 'Simpan Pinjam', icon: Wallet },
+        { to: '/transactions', label: 'Log Transaksi', icon: History },
+      ];
 
-  if (userRole === 'admin' || user.email === 'seleraku.cs1@gmail.com') {
+  if ((userRole === 'admin' || user?.email === 'seleraku.cs1@gmail.com') && userRole !== 'member') {
     navItems.push({ to: '/staff', label: 'Kelola Staf', icon: Settings });
   }
 
@@ -107,17 +109,20 @@ export default function Layout({ children, user, userRole, onLogout }: LayoutPro
 
         <div className="p-4 border-t border-[#141414] space-y-4">
           <div className="flex items-center gap-3 px-3">
-            {user.photoURL ? (
-              <img src={user.photoURL} alt={user.displayName || ''} className="w-8 h-8 rounded-full border border-[#141414]" referrerPolicy="no-referrer" />
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt={user.displayName || (user as any).name || ''} className="w-8 h-8 rounded-full border border-[#141414]" referrerPolicy="no-referrer" />
             ) : (
               <div className="w-8 h-8 rounded-full bg-[#141414] text-[#E4E3E0] flex items-center justify-center text-xs font-mono">
-                {user.displayName?.[0] || 'U'}
+                {user?.displayName?.[0] || (user as any).name?.[0] || 'U'}
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-mono truncate font-bold">{user.displayName}</p>
-              <p className="text-[9px] font-mono opacity-50 truncate select-all" title="Klik untuk menyalin">ID: {user.uid}</p>
-              <p className="text-[9px] font-mono text-green-600 uppercase mt-1">Staff Administrasi</p>
+              <p className="text-xs font-mono truncate font-bold">{user?.displayName || (user as any).name}</p>
+              <p className="text-[9px] font-mono opacity-50 truncate select-all" title="Klik untuk menyalin">ID: {user?.uid || (user as any).id?.slice(0,8)}</p>
+              <p className={cn(
+                "text-[9px] font-mono uppercase mt-1",
+                userRole === 'member' ? "text-blue-600" : "text-green-600"
+              )}>{userRole === 'member' ? 'Anggota Koperasi' : 'Staff Administrasi'}</p>
             </div>
           </div>
           <button 

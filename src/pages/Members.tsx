@@ -13,12 +13,17 @@ export default function Members() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [processing, setProcessing] = useState<string | null>(null);
 
   const [newMember, setNewMember] = useState<Partial<Member>>({
     name: '',
     address: '',
     phone: '',
+    cardNumber: '',
+    birthDate: '',
+    email: '',
+    password: '12345',
     status: 'active'
   });
 
@@ -55,7 +60,16 @@ export default function Members() {
       };
       await addDoc(collection(db, 'members'), docData);
       setShowAddModal(false);
-      setNewMember({ name: '', address: '', phone: '', status: 'active' });
+      setNewMember({ 
+        name: '', 
+        address: '', 
+        phone: '', 
+        cardNumber: '',
+        birthDate: '',
+        email: '',
+        password: '12345',
+        status: 'active' 
+      });
       fetchMembers();
     } catch (error) {
       console.error("Error adding member:", error);
@@ -77,10 +91,11 @@ export default function Members() {
     }
   };
 
-  const filteredMembers = members.filter(m => 
-    m.name.toLowerCase().includes(search.toLowerCase()) ||
-    m.phone?.includes(search)
-  );
+  const filteredMembers = members.filter(m => {
+    const matchesSearch = m.name.toLowerCase().includes(search.toLowerCase()) || m.phone?.includes(search);
+    const matchesStatus = statusFilter === 'all' || m.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="p-8 space-y-8">
@@ -112,9 +127,24 @@ export default function Members() {
           />
         </div>
         <div className="flex border border-[#141414] bg-white rounded-xl overflow-hidden font-mono text-[10px]">
-          <button className="flex-1 px-4 sm:px-6 py-3 bg-[#141414] text-white">SEMUA</button>
-          <button className="flex-1 px-4 sm:px-6 py-3 hover:bg-stone-50 border-l border-[#141414]">AKTIF</button>
-          <button className="flex-1 px-4 sm:px-6 py-3 hover:bg-stone-50 border-l border-[#141414]">NON</button>
+          <button 
+            onClick={() => setStatusFilter('all')}
+            className={`flex-1 px-4 sm:px-6 py-3 transition-colors ${statusFilter === 'all' ? 'bg-[#141414] text-white' : 'hover:bg-stone-50'}`}
+          >
+            SEMUA
+          </button>
+          <button 
+            onClick={() => setStatusFilter('active')}
+            className={`flex-1 px-4 sm:px-6 py-3 border-l border-[#141414] transition-colors ${statusFilter === 'active' ? 'bg-[#141414] text-white' : 'hover:bg-stone-50'}`}
+          >
+            AKTIF
+          </button>
+          <button 
+            onClick={() => setStatusFilter('inactive')}
+            className={`flex-1 px-4 sm:px-6 py-3 border-l border-[#141414] transition-colors ${statusFilter === 'inactive' ? 'bg-[#141414] text-white' : 'hover:bg-stone-50'}`}
+          >
+            NON
+          </button>
         </div>
       </div>
 
@@ -303,15 +333,36 @@ export default function Members() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-mono uppercase tracking-widest opacity-60">Status Awal</label>
-                    <select 
-                      value={newMember.status}
-                      onChange={e => setNewMember({...newMember, status: e.target.value as any})}
+                    <label className="text-[10px] font-mono uppercase tracking-widest opacity-60">No. Kartu Anggota</label>
+                    <input 
+                      required
+                      type="text" 
+                      value={newMember.cardNumber}
+                      onChange={e => setNewMember({...newMember, cardNumber: e.target.value})}
                       className="w-full bg-white border border-[#141414] rounded-xl px-4 py-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[#141414]"
-                    >
-                      <option value="active">AKTIF</option>
-                      <option value="inactive">NONAKTIF</option>
-                    </select>
+                      placeholder="Kartu Anggota"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-mono uppercase tracking-widest opacity-60">Email</label>
+                    <input 
+                      type="email" 
+                      value={newMember.email}
+                      onChange={e => setNewMember({...newMember, email: e.target.value})}
+                      className="w-full bg-white border border-[#141414] rounded-xl px-4 py-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[#141414]"
+                      placeholder="email@contoh.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-mono uppercase tracking-widest opacity-60">Tanggal Lahir</label>
+                    <input 
+                      type="date" 
+                      value={newMember.birthDate}
+                      onChange={e => setNewMember({...newMember, birthDate: e.target.value})}
+                      className="w-full bg-white border border-[#141414] rounded-xl px-4 py-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[#141414]"
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -322,6 +373,28 @@ export default function Members() {
                     className="w-full bg-white border border-[#141414] rounded-xl px-4 py-3 font-sans h-24 focus:outline-none focus:ring-1 focus:ring-[#141414] resize-none"
                     placeholder="Dusun Sidoharjo RT 01/RW 02..."
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-mono uppercase tracking-widest opacity-60">Password Login</label>
+                    <input 
+                      type="text" 
+                      value={newMember.password}
+                      onChange={e => setNewMember({...newMember, password: e.target.value})}
+                      className="w-full bg-white border border-[#141414] rounded-xl px-4 py-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[#141414]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-mono uppercase tracking-widest opacity-60">Status Awal</label>
+                    <select 
+                      value={newMember.status}
+                      onChange={e => setNewMember({...newMember, status: e.target.value as any})}
+                      className="w-full bg-white border border-[#141414] rounded-xl px-4 py-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[#141414]"
+                    >
+                      <option value="active">AKTIF</option>
+                      <option value="inactive">NONAKTIF</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="flex gap-4 pt-4">
                   <button 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, getDocs, limit, orderBy, where, getCountFromServer } from 'firebase/firestore';
+import { collection, query, getDocs, limit, orderBy, where, getCountFromServer, writeBatch, doc as firestoreDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -12,7 +12,9 @@ import {
   AlertCircle,
   ArrowUpRight,
   ArrowDownRight,
-  Loader2
+  Loader2,
+  ListRestart,
+  CheckCircle2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Item, Member, Transaction, Saving, Loan } from '../types';
@@ -35,9 +37,80 @@ export default function Dashboard() {
     balance: 0
   });
 
+  const [repairing, setRepairing] = useState(false);
+  const [repairSuccess, setRepairSuccess] = useState(false);
+  const [inspectCard, setInspectCard] = useState('');
+  const [inspectedMember, setInspectedMember] = useState<any>(null);
+
+  const handleInspect = async () => {
+    if (!inspectCard) return;
+    try {
+      const q = query(collection(db, 'members'), where('cardNumber', '==', inspectCard.trim()));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        alert("Nomor kartu tidak ditemukan");
+        setInspectedMember(null);
+      } else {
+        const data = snap.docs[0].data();
+        setInspectedMember(data);
+      }
+    } catch (e) {
+      alert("Error inspecting card");
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  const handleRepairData = async () => {
+    setRepairing(true);
+    try {
+      const snap = await getDocs(collection(db, 'members'));
+      const batch = writeBatch(db);
+      let count = 0;
+      
+      snap.docs.forEach((d, idx) => {
+        const data = d.data();
+        const updates: any = {};
+        let needsUpdate = false;
+
+        if (!data.cardNumber) {
+          updates.cardNumber = (1000 + idx).toString();
+          needsUpdate = true;
+        }
+        if (!data.password) {
+          updates.password = '12345';
+          needsUpdate = true;
+        }
+        if (!data.email) {
+          updates.email = '';
+          needsUpdate = true;
+        }
+        if (!data.birthDate) {
+          updates.birthDate = '';
+          needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+          batch.update(firestoreDoc(db, 'members', d.id), updates);
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        await batch.commit();
+        alert(`Berhasil memperbarui ${count} data anggota.`);
+      }
+      setRepairSuccess(true);
+      setTimeout(() => setRepairSuccess(false), 3000);
+      fetchDashboardData();
+    } catch (error) {
+      alert("Gagal melakukan perbaikan data");
+    } finally {
+      setRepairing(false);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -49,17 +122,20 @@ export default function Dashboard() {
         getCountFromServer(collection(db, 'items'))
       ]);
 
-      // 2. Get Savings & Transactions for Cash Flow
-      const [savingsSnap, allTransactionsSnap, loansSnap] = await Promise.all([
+      // 2. Get Savings, Transactions, Loans & Repayments
+      const [savingsSnap, allTransactionsSnap, loansSnap, repaymentsSnap] = await Promise.all([
         getDocs(collection(db, 'savings')),
         getDocs(collection(db, 'transactions')),
-        getDocs(collection(db, 'loans'))
+        getDocs(collection(db, 'loans')),
+        getDocs(collection(db, 'repayments'))
       ]);
 
       const totalSavings = savingsSnap.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
       const totalSales = allTransactionsSnap.docs
         .filter(doc => doc.data().type === 'sale')
         .reduce((acc, doc) => acc + (doc.data().totalAmount || 0), 0);
+      
+      const totalRepayments = repaymentsSnap.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
       
       const totalPurchases = allTransactionsSnap.docs
         .filter(doc => doc.data().type === 'purchase')
@@ -69,7 +145,7 @@ export default function Dashboard() {
         .filter(doc => doc.data().status === 'active' || doc.data().status === 'completed')
         .reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
 
-      const debit = totalSavings + totalSales;
+      const debit = totalSavings + totalSales + totalRepayments;
       const credit = totalPurchases + totalDisbursements;
 
       setCashBalance({
@@ -327,6 +403,59 @@ export default function Dashboard() {
 
           {/* Quick Actions */}
           <div className="p-6 border border-[#141414] bg-white rounded-xl">
+            <h3 className="font-serif italic text-xl mb-6 text-[#141414]">Utilitas Data</h3>
+            
+            {/* Inspector Tool */}
+            <div className="mb-8 p-4 bg-stone-50 border border-stone-200 rounded-lg space-y-4">
+              <p className="text-[10px] font-mono uppercase opacity-60">Cek Kredensial Anggota</p>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  placeholder="No. Kartu"
+                  value={inspectCard}
+                  onChange={e => setInspectCard(e.target.value)}
+                  className="flex-1 bg-white border border-stone-300 rounded px-3 py-2 font-mono text-[10px]"
+                />
+                <button 
+                  onClick={handleInspect}
+                  className="bg-[#141414] text-white px-4 py-2 rounded font-mono text-[8px] uppercase tracking-widest"
+                >
+                  Periksa
+                </button>
+              </div>
+              {inspectedMember && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-white border border-stone-200 rounded text-[10px] font-mono leading-relaxed"
+                >
+                  <p className="font-bold text-[#141414] uppercase">{inspectedMember.name}</p>
+                  <p>ID Kartu: {inspectedMember.cardNumber}</p>
+                  <p>Password: <span className="bg-amber-100 px-1 font-bold">{inspectedMember.password}</span></p>
+                  <button 
+                    onClick={() => setInspectedMember(null)}
+                    className="mt-2 text-red-500 underline"
+                  >
+                    Tutup
+                  </button>
+                </motion.div>
+              )}
+            </div>
+
+            <button 
+              onClick={handleRepairData}
+              disabled={repairing}
+              className="w-full text-left p-4 border border-orange-200 bg-orange-50 text-orange-800 rounded-lg text-[10px] font-mono tracking-widest hover:bg-orange-100 transition-all flex justify-between items-center group mb-8"
+            >
+              <div className="flex items-center gap-3">
+                {repairing ? <Loader2 size={16} className="animate-spin" /> : (repairSuccess ? <CheckCircle2 size={16} className="text-green-600" /> : <ListRestart size={16} />)}
+                <div>
+                  <p>NORMALISASI DATA</p>
+                  <p className="text-[8px] opacity-60">Generate Member Card & Password</p>
+                </div>
+              </div>
+            </button>
+
             <h3 className="font-serif italic text-xl mb-6 text-[#141414]">Aksi Cepat</h3>
             <div className="space-y-3">
               {[

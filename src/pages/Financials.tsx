@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, query, orderBy, Timestamp, doc, runTransaction } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, Timestamp, doc, runTransaction, where } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { Saving, Loan, Member } from '../types';
 import { Wallet, Landmark, ArrowRight, Plus, Search, FileText, X, Loader2, DollarSign, Printer } from 'lucide-react';
@@ -188,11 +188,16 @@ export default function Financials() {
            throw new Error("Jumlah bayar melebihi sisa hutang");
         }
 
+        const repaymentSnap = await getDocs(query(collection(db, 'repayments'), where('loanId', '==', newRepayment.loanId)));
+        const installmentNumber = repaymentSnap.size + 1;
+
         const repaymentRef = doc(collection(db, 'repayments'));
         transaction.set(repaymentRef, {
           ...newRepayment,
           memberId: loanDoc.data().memberId,
           type: loanDoc.data().type,
+          installmentNumber,
+          totalInstallments: loanDoc.data().durationMonths,
           date: new Date().toISOString()
         });
 
@@ -335,7 +340,9 @@ export default function Financials() {
                         {members.find(m => m.id === s.memberId)?.name || '...'}
                       </td>
                       <td className="p-4 uppercase">{s.type}</td>
+                      <td className="p-4 opacity-20">-</td>
                       <td className="p-4 text-right font-bold">Rp {s.amount.toLocaleString()}</td>
+                      <td className="p-4 text-right opacity-20">-</td>
                       <td className="p-4 text-right">
                         <button 
                           onClick={() => setPrintData({ ...s, memberName: members.find(m => m.id === s.memberId)?.name, printType: 'saving' })}

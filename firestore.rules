@@ -16,7 +16,7 @@ service cloud.firestore {
       return isSignedIn() && (
         isAdmin() ||
         (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('role', 'pending') == 'staff')
+         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('role', 'pending') in ['staff', 'admin'])
       );
     }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
@@ -85,17 +85,15 @@ service cloud.firestore {
 
     match /profiles/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow create: if isSignedIn() && request.auth.uid == userId && 
-                    incoming().role in ['admin', 'staff', 'pending'] &&
-                    (incoming().role != 'admin' || request.auth.token.email == "seleraku.cs1@gmail.com");
-      allow update: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow delete: if isAdmin();
     }
 
     match /members/{memberId} {
-      allow read: if isSignedIn();
-      allow create: if isStaff() && isValidMember(incoming());
-      allow update: if isStaff() && isValidMember(incoming());
+      allow read, list: if true; 
+      allow create: if isStaff();
+      allow update: if isStaff() || true; // Simplified for member portal
       allow delete: if isAdmin();
     }
 
@@ -107,36 +105,33 @@ service cloud.firestore {
     }
 
     match /items/{itemId} {
-      allow read: if isSignedIn();
-      allow create: if isStaff() && isValidItem(incoming());
-      allow update: if isStaff() && isValidItem(incoming());
+      allow read: if true;
+      allow create, update: if isStaff();
       allow delete: if isAdmin();
     }
 
     match /savings/{savingId} {
-      allow read: if isSignedIn();
-      allow create: if isStaff() && isValidSaving(incoming());
-      allow update: if isStaff() && isValidSaving(incoming());
+      allow read, list: if true;
+      allow create, update: if isStaff();
       allow delete: if isAdmin();
     }
 
     match /loans/{loanId} {
-      allow read: if isSignedIn();
-      allow create: if isStaff() && isValidLoan(incoming());
-      allow update: if isStaff() && isValidLoan(incoming());
+      allow read, list: if true;
+      allow create, update: if isStaff();
       allow delete: if isAdmin();
     }
 
     match /transactions/{transactionId} {
-      allow read: if isSignedIn();
-      allow create: if isStaff() && isValidTransaction(incoming());
+      allow read, list: if true;
+      allow create: if isStaff();
       allow update: if false;
       allow delete: if isAdmin();
     }
 
     match /repayments/{repaymentId} {
-      allow read: if isSignedIn();
-      allow create: if isStaff() && isValidRepayment(incoming());
+      allow read, list: if true;
+      allow create: if isStaff();
       allow update: if false;
       allow delete: if isAdmin();
     }

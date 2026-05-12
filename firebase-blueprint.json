@@ -9,6 +9,10 @@
         "name": { "type": "string" },
         "address": { "type": "string" },
         "phone": { "type": "string" },
+        "cardNumber": { "type": "string" },
+        "birthDate": { "type": "string" },
+        "email": { "type": "string" },
+        "password": { "type": "string" },
         "joinDate": { "type": "string", "format": "date-time" },
         "status": { "type": "string", "enum": ["active", "inactive"] }
       },
