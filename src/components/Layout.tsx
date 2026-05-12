@@ -82,7 +82,7 @@ export default function Layout({ children, user, userRole, onLogout }: LayoutPro
       )}>
         <div className="p-8 border-bottom border-[#141414]">
           <h1 className="font-serif italic text-2xl tracking-tight">Sidoharjo</h1>
-          <p className="text-[10px] uppercase font-mono mt-1 opacity-50 tracking-widest text-[#141414]">KDMP Management v1.0</p>
+          <p className="text-[10px] uppercase font-mono mt-1 opacity-50 tracking-widest text-[#141414]">KMP Management v1.0</p>
         </div>
 
         <nav className="flex-1 px-4 py-4 space-y-1">

@@ -189,7 +189,7 @@ export default function App() {
                   )}
                 </div>
                 <div className="bg-stone-50 p-6 text-[8px] uppercase tracking-widest text-stone-400 border-t border-stone-100 font-mono font-bold">
-                  Sistem Informasi Koperasi Unit Desa v2.4
+                  Sistem Informasi Koperasi Merah Putih v2.4
                 </div>
               </div>
             </motion.div>
