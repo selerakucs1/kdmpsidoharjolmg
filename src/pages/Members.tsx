@@ -4,6 +4,7 @@ import { db } from '../lib/firebase';
 import { Member, Saving, Loan } from '../types';
 import { Plus, Search, MoreHorizontal, UserPlus, Phone, MapPin, Loader2, CheckCircle, XCircle, UserCheck, UserMinus, ChevronDown, ChevronUp, Wallet, ArrowDownCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import AlertModal from '../components/AlertModal';
 
 export default function Members() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -15,6 +16,11 @@ export default function Members() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [processing, setProcessing] = useState<string | null>(null);
+  const [alertConfig, setAlertConfig] = useState({ show: false, title: '', message: '', type: 'success' as any });
+
+  const showAlert = (title: string, message: string, type: any = 'success') => {
+    setAlertConfig({ show: true, title, message, type });
+  };
 
   const [newMember, setNewMember] = useState<Partial<Member>>({
     name: '',
@@ -60,6 +66,7 @@ export default function Members() {
       };
       await addDoc(collection(db, 'members'), docData);
       setShowAddModal(false);
+      showAlert("Berhasil", "Anggota baru telah berhasil ditambahkan ke sistem.", "success");
       setNewMember({ 
         name: '', 
         address: '', 
@@ -72,7 +79,7 @@ export default function Members() {
       });
       fetchMembers();
     } catch (error) {
-      console.error("Error adding member:", error);
+      showAlert("Kesalahan", "Gagal menambahkan anggota baru", "error");
     } finally {
       setLoading(false);
     }
@@ -84,8 +91,9 @@ export default function Members() {
       const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
       await updateDoc(doc(db, 'members', memberId), { status: newStatus });
       fetchMembers();
+      showAlert("Berhasil", `Status anggota berhasil diubah menjadi ${newStatus}.`, "success");
     } catch (error) {
-      alert("Gagal mengubah status: " + (error instanceof Error ? error.message : "Error"));
+      showAlert("Kesalahan", "Gagal mengubah status anggota: " + (error instanceof Error ? error.message : "Error"), "error");
     } finally {
       setProcessing(null);
     }
@@ -416,6 +424,14 @@ export default function Members() {
           </div>
         )}
       </AnimatePresence>
+      
+      <AlertModal 
+        show={alertConfig.show} 
+        title={alertConfig.title} 
+        message={alertConfig.message} 
+        type={alertConfig.type} 
+        onClose={() => setAlertConfig({...alertConfig, show: false})} 
+      />
     </div>
   );
 }

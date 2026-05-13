@@ -3,6 +3,7 @@ import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/fi
 import { db } from '../lib/firebase';
 import { UserCheck, UserX, Shield, ShieldAlert, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import AlertModal from '../components/AlertModal';
 
 interface Profile {
   uid: string;
@@ -16,6 +17,11 @@ export default function Staff() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
+  const [alertConfig, setAlertConfig] = useState({ show: false, title: '', message: '', type: 'success' as any });
+
+  const showAlert = (title: string, message: string, type: any = 'success') => {
+    setAlertConfig({ show: true, title, message, type });
+  };
 
   useEffect(() => {
     fetchProfiles();
@@ -37,8 +43,9 @@ export default function Staff() {
     try {
       await updateDoc(doc(db, 'profiles', uid), { role: newRole });
       fetchProfiles();
+      showAlert("Berhasil", "Peran staf telah diperbarui.", "success");
     } catch (error) {
-      alert("Gagal memperbarui peran");
+      showAlert("Kesalahan", "Gagal memperbarui peran staf", "error");
     } finally {
       setProcessing(null);
     }
@@ -123,6 +130,14 @@ export default function Staff() {
           </tbody>
         </table>
       </div>
+      
+      <AlertModal 
+        show={alertConfig.show} 
+        title={alertConfig.title} 
+        message={alertConfig.message} 
+        type={alertConfig.type} 
+        onClose={() => setAlertConfig({...alertConfig, show: false})} 
+      />
     </div>
   );
 }

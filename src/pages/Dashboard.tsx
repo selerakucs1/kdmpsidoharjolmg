@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Item, Member, Transaction, Saving, Loan } from '../types';
+import AlertModal from '../components/AlertModal';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -41,6 +42,11 @@ export default function Dashboard() {
   const [repairSuccess, setRepairSuccess] = useState(false);
   const [inspectCard, setInspectCard] = useState('');
   const [inspectedMember, setInspectedMember] = useState<any>(null);
+  const [alertConfig, setAlertConfig] = useState({ show: false, title: '', message: '', type: 'error' as any });
+
+  const showAlert = (title: string, message: string, type: any = 'error') => {
+    setAlertConfig({ show: true, title, message, type });
+  };
 
   const handleInspect = async () => {
     if (!inspectCard) return;
@@ -48,14 +54,14 @@ export default function Dashboard() {
       const q = query(collection(db, 'members'), where('cardNumber', '==', inspectCard.trim()));
       const snap = await getDocs(q);
       if (snap.empty) {
-        alert("Nomor kartu tidak ditemukan");
+        showAlert("Data Kosong", "Nomor kartu tidak ditemukan di sistem", "warning");
         setInspectedMember(null);
       } else {
         const data = snap.docs[0].data();
         setInspectedMember(data);
       }
     } catch (e) {
-      alert("Error inspecting card");
+      showAlert("Kesalahan", "Gagal melakukan pengecekan kartu", "error");
     }
   };
 
@@ -100,13 +106,13 @@ export default function Dashboard() {
 
       if (count > 0) {
         await batch.commit();
-        alert(`Berhasil memperbarui ${count} data anggota.`);
+        showAlert("Berhasil", `Berhasil memperbarui ${count} data anggota.`, "success");
       }
       setRepairSuccess(true);
       setTimeout(() => setRepairSuccess(false), 3000);
       fetchDashboardData();
     } catch (error) {
-      alert("Gagal melakukan perbaikan data");
+      showAlert("Kesalahan", "Gagal melakukan perbaikan data dan normalisasi", "error");
     } finally {
       setRepairing(false);
     }
@@ -503,6 +509,14 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      
+      <AlertModal 
+        show={alertConfig.show} 
+        title={alertConfig.title} 
+        message={alertConfig.message} 
+        type={alertConfig.type} 
+        onClose={() => setAlertConfig({...alertConfig, show: false})} 
+      />
     </div>
   );
 }

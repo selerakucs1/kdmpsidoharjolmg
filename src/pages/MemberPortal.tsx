@@ -4,6 +4,7 @@ import { db } from '../lib/firebase';
 import { Member, Saving, Loan } from '../types';
 import { User, Wallet, Landmark, History, Save, Loader2, MapPin, Phone, Calendar, Mail, CreditCard, DollarSign } from 'lucide-react';
 import { motion } from 'motion/react';
+import AlertModal from '../components/AlertModal';
 
 export default function MemberPortal({ member }: { member: Member | null }) {
   const [profile, setProfile] = useState<Member | null>(member);
@@ -12,6 +13,11 @@ export default function MemberPortal({ member }: { member: Member | null }) {
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ show: false, title: '', message: '', type: 'success' as any });
+
+  const showAlert = (title: string, message: string, type: any = 'success') => {
+    setAlertConfig({ show: true, title, message, type });
+  };
 
   useEffect(() => {
     if (member?.id) {
@@ -59,9 +65,9 @@ export default function MemberPortal({ member }: { member: Member | null }) {
     try {
       const { name, cardNumber, id, ...updateData } = profile;
       await updateDoc(doc(db, 'members', profile.id), updateData);
-      alert("Profil berhasil diperbarui");
+      showAlert("Berhasil", "Data profil Anda telah diperbarui.", "success");
     } catch (error) {
-      alert("Gagal memperbarui profil");
+      showAlert("Kesalahan", "Gagal memperbarui data profil", "error");
     } finally {
       setSaving(false);
     }
@@ -281,6 +287,14 @@ export default function MemberPortal({ member }: { member: Member | null }) {
           </div>
         </div>
       </div>
+    
+    <AlertModal 
+      show={alertConfig.show} 
+      title={alertConfig.title} 
+      message={alertConfig.message} 
+      type={alertConfig.type} 
+      onClose={() => setAlertConfig({...alertConfig, show: false})} 
+    />
     </div>
   );
 }

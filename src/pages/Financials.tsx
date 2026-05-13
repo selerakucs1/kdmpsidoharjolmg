@@ -4,6 +4,7 @@ import { db, auth } from '../lib/firebase';
 import { Saving, Loan, Member } from '../types';
 import { Wallet, Landmark, ArrowRight, Plus, Search, FileText, X, Loader2, DollarSign, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import AlertModal from '../components/AlertModal';
 
 // Error Handler helper
 enum OperationType {
@@ -13,22 +14,6 @@ enum OperationType {
   LIST = 'list',
   GET = 'get',
   WRITE = 'write',
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  alert(`Gagal: ${errInfo.error}`);
-  throw new Error(JSON.stringify(errInfo));
 }
 
 export default function Financials() {
@@ -48,6 +33,28 @@ export default function Financials() {
   const [showAddLoan, setShowAddLoan] = useState(false);
   const [showAddRepayment, setShowAddRepayment] = useState(false);
   const [repayments, setRepayments] = useState<any[]>([]);
+
+  const [alertConfig, setAlertConfig] = useState({ show: false, title: '', message: '', type: 'success' as any });
+
+  const showAlert = (title: string, message: string, type: any = 'success') => {
+    setAlertConfig({ show: true, title, message, type });
+  };
+
+  function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+    const errInfo = {
+      error: error instanceof Error ? error.message : String(error),
+      authInfo: {
+        userId: auth.currentUser?.uid,
+        email: auth.currentUser?.email,
+        emailVerified: auth.currentUser?.emailVerified,
+      },
+      operationType,
+      path
+    };
+    console.error('Firestore Error: ', JSON.stringify(errInfo));
+    showAlert("Kesalahan Database", errInfo.error, "error");
+    // throw new Error(JSON.stringify(errInfo)); // Removed throw to allow UI to continue
+  }
 
   // Selection for printing receipts
   const [printData, setPrintData] = useState<any>(null);
@@ -209,6 +216,7 @@ export default function Financials() {
       });
       
       setShowAddRepayment(false);
+      showAlert("Pembayaran Berhasil", "Angsuran telah berhasil dicatat dalam sistem.", "success");
       setNewRepayment({ loanId: '', amount: 0, date: new Date().toISOString() });
       fetchData();
       calculateCashFlow();
@@ -230,6 +238,7 @@ export default function Financials() {
       const res = await addDoc(collection(db, 'savings'), data);
       setPrintData({ ...data, id: res.id, memberName: members.find(m => m.id === newSaving.memberId)?.name, printType: 'saving' });
       setShowAddSaving(false);
+      showAlert("Berhasil", "Simpanan anggota telah berhasil disimpan.", "success");
       setNewSaving({ memberId: '', amount: 0, type: 'wajib' });
       fetchData();
       calculateCashFlow();
@@ -255,6 +264,7 @@ export default function Financials() {
       };
       await addDoc(collection(db, 'loans'), data);
       setShowAddLoan(false);
+      showAlert("Berhasil", "Pengajuan pinjaman telah berhasil disimpan dan menunggu persetujuan.", "success");
       setNewLoan({ memberId: '', amount: 0, durationMonths: 12, interest: 1.5, type: 'cash' });
       fetchData();
     } catch (error) {
@@ -684,6 +694,14 @@ export default function Financials() {
           </div>
         )}
       </AnimatePresence>
+      
+      <AlertModal 
+        show={alertConfig.show} 
+        title={alertConfig.title} 
+        message={alertConfig.message} 
+        type={alertConfig.type} 
+        onClose={() => setAlertConfig({...alertConfig, show: false})} 
+      />
     </div>
   );
 }

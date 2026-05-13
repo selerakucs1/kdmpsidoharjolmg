@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Item, Member, Transaction as PaymentTransaction, Loan } from '../types';
+import AlertModal from '../components/AlertModal';
 import { 
   ShoppingCart, 
   User, 
@@ -23,7 +24,8 @@ import {
   X,
   FileText,
   Printer,
-  Search
+  Search,
+  AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -42,6 +44,16 @@ export default function POS() {
   const [selectedMember, setSelectedMember] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit'>('cash');
   const [searchTerm, setSearchTerm] = useState('');
+  const [alertConfig, setAlertConfig] = useState<{ show: boolean; title: string; message: string; type: 'success' | 'error' | 'warning' }>({
+    show: false,
+    title: '',
+    message: '',
+    type: 'success'
+  });
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'warning' = 'success') => {
+    setAlertConfig({ show: true, title, message, type });
+  };
 
   useEffect(() => {
     fetchData();
@@ -67,13 +79,13 @@ export default function POS() {
       const existing = prev.find(i => i.id === item.id);
       if (existing) {
         if (existing.qty + 1 > item.stock) {
-          alert(`Stok tidak cukup! Maksimal stok ${item.name} adalah ${item.stock}`);
+          showAlert('Stok Terbatas', `Stok tidak cukup! Maksimal stok ${item.name} adalah ${item.stock}`, 'warning');
           return prev;
         }
         return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i);
       }
       if (item.stock <= 0) {
-        alert(`Stok ${item.name} habis!`);
+        showAlert('Stok Habis', `Stok ${item.name} sudah tidak tersedia!`, 'error');
         return prev;
       }
       return [...prev, { ...item, qty: 1 }];
@@ -91,7 +103,7 @@ export default function POS() {
       const newQty = itemInCart.qty + delta;
 
       if (newQty > maxStock) {
-        alert(`Stok tidak cukup! Maksimal stok ${itemInCart.name} adalah ${maxStock}`);
+        showAlert('Batas Stok', `Maksimal stok yang tersedia untuk ${itemInCart.name} adalah ${maxStock}`, 'warning');
         return prev;
       }
 
@@ -110,7 +122,7 @@ export default function POS() {
   const handleSubmit = async () => {
     if (cart.length === 0) return;
     if (paymentMethod === 'credit' && !selectedMember) {
-      alert('Pilih anggota untuk transaksi kredit');
+      showAlert('Aksi Diperlukan', 'Silakan pilih anggota terlebih dahulu untuk transaksi kredit.', 'warning');
       return;
     }
 
@@ -172,10 +184,10 @@ export default function POS() {
       setCart([]);
       setSelectedMember('');
       setPaymentMethod('cash');
-      alert('Transaksi Berhasil!');
+      showAlert('Berhasil', 'Transaksi telah berhasil diproses!', 'success');
       fetchData(); // Refresh stocks
     } catch (error: any) {
-      alert(error.message);
+      showAlert('Gagal', error.message, 'error');
     } finally {
       setProcessing(false);
     }
@@ -448,6 +460,14 @@ export default function POS() {
           </div>
         )}
       </AnimatePresence>
+
+      <AlertModal 
+        show={alertConfig.show} 
+        title={alertConfig.title} 
+        message={alertConfig.message} 
+        type={alertConfig.type} 
+        onClose={() => setAlertConfig(prev => ({ ...prev, show: false }))} 
+      />
     </div>
   );
 }

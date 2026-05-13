@@ -17,6 +17,7 @@ import Transactions from './pages/Transactions';
 import POS from './pages/POS';
 import Staff from './pages/Staff';
 import MemberPortal from './pages/MemberPortal';
+import AlertModal from './components/AlertModal';
 import { LogIn, Loader2, ShoppingCart, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -27,6 +28,11 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [loginMode, setLoginMode] = useState<'staff' | 'member'>('staff');
   const [memberCreds, setMemberCreds] = useState({ card: '', pass: '' });
+  const [alertConfig, setAlertConfig] = useState({ show: false, title: '', message: '', type: 'error' as any });
+
+  const showAlert = (title: string, message: string, type: any = 'error') => {
+    setAlertConfig({ show: true, title, message, type });
+  };
 
   useEffect(() => {
     // Check session for member
@@ -87,7 +93,7 @@ export default function App() {
       setMemberUser(userData);
       localStorage.setItem('member_session', JSON.stringify(userData));
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Gagal masuk ke portal");
+      showAlert('Gagal Masuk', error instanceof Error ? error.message : "Gagal masuk ke portal", 'error');
     } finally {
       setLoading(false);
     }
@@ -248,6 +254,13 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+        <AlertModal 
+          show={alertConfig.show} 
+          title={alertConfig.title} 
+          message={alertConfig.message} 
+          type={alertConfig.type} 
+          onClose={() => setAlertConfig({...alertConfig, show: false})} 
+        />
       </div>
     </BrowserRouter>
   );

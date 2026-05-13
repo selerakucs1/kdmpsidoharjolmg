@@ -4,6 +4,7 @@ import { db } from '../lib/firebase';
 import { Item, Supplier } from '../types';
 import { Plus, Search, Package, Truck, Tag, DollarSign, Box } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import AlertModal from '../components/AlertModal';
 
 export default function Inventory() {
   const [activeTab, setActiveTab] = useState<'items' | 'suppliers'>('items');
@@ -13,6 +14,11 @@ export default function Inventory() {
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [alertConfig, setAlertConfig] = useState({ show: false, title: '', message: '', type: 'success' as any });
+
+  const showAlert = (title: string, message: string, type: any = 'success') => {
+    setAlertConfig({ show: true, title, message, type });
+  };
 
   // New Item State
   const [newItem, setNewItem] = useState<Partial<Item>>({
@@ -73,10 +79,11 @@ export default function Inventory() {
       setShowAddModal(false);
       setEditingId(null);
       fetchData();
+      showAlert("Berhasil", "Data telah berhasil disimpan.", "success");
       setNewItem({ name: '', category: 'Sembako', unit: 'kg', price: 0, stock: 0 });
       setNewSupplier({ name: '', phone: '', address: '' });
     } catch (error) {
-       alert("Gagal menyimpan data: " + (error instanceof Error ? error.message : "Error"));
+       showAlert("Kesalahan", "Gagal menyimpan data: " + (error instanceof Error ? error.message : "Error"), "error");
     } finally {
       setLoading(false);
     }
@@ -130,9 +137,10 @@ export default function Inventory() {
         });
       });
       setShowRestockModal(false);
+      showAlert("Berhasil", "Restock barang berhasil dilakukan.", "success");
       fetchData();
     } catch (error) {
-      alert("Gagal restock: " + (error instanceof Error ? error.message : "Error"));
+      showAlert("Kesalahan", "Gagal restock: " + (error instanceof Error ? error.message : "Error"), "error");
     } finally {
       setLoading(false);
     }
@@ -407,6 +415,14 @@ export default function Inventory() {
           </div>
         )}
       </AnimatePresence>
+      
+      <AlertModal 
+        show={alertConfig.show} 
+        title={alertConfig.title} 
+        message={alertConfig.message} 
+        type={alertConfig.type} 
+        onClose={() => setAlertConfig({...alertConfig, show: false})} 
+      />
     </div>
   );
 }
