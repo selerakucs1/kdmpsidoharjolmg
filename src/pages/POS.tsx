@@ -66,20 +66,39 @@ export default function POS() {
     setCart(prev => {
       const existing = prev.find(i => i.id === item.id);
       if (existing) {
+        if (existing.qty + 1 > item.stock) {
+          alert(`Stok tidak cukup! Maksimal stok ${item.name} adalah ${item.stock}`);
+          return prev;
+        }
         return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i);
+      }
+      if (item.stock <= 0) {
+        alert(`Stok ${item.name} habis!`);
+        return prev;
       }
       return [...prev, { ...item, qty: 1 }];
     });
   };
 
   const updateQty = (id: string, delta: number) => {
-    setCart(prev => prev.map(i => {
-      if (i.id === id) {
-        const newQty = Math.max(1, i.qty + delta);
-        return { ...i, qty: newQty };
+    setCart(prev => {
+      const itemInCart = prev.find(i => i.id === id);
+      if (!itemInCart) return prev;
+
+      const itemInCatalog = items.find(i => i.id === id);
+      const maxStock = itemInCatalog?.stock ?? itemInCart.stock;
+
+      const newQty = itemInCart.qty + delta;
+
+      if (newQty > maxStock) {
+        alert(`Stok tidak cukup! Maksimal stok ${itemInCart.name} adalah ${maxStock}`);
+        return prev;
       }
-      return i;
-    }));
+
+      if (newQty < 1) return prev;
+
+      return prev.map(i => i.id === id ? { ...i, qty: newQty } : i);
+    });
   };
 
   const removeFromCart = (id: string) => {
